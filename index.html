@@ -403,6 +403,43 @@ select.filter-select:focus{border-color:var(--blue)}
   border-radius:var(--r-sm)!important;
 }
 
+/* ── PIN MODAL ───────────────────────────────────────────── */
+#pin-overlay{
+  display:none;position:fixed;inset:0;z-index:999;
+  background:rgba(15,23,42,.72);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;
+}
+#pin-overlay.visible{display:flex}
+#pin-box{
+  background:var(--surface);border-radius:16px;padding:36px 40px;
+  width:340px;box-shadow:0 24px 64px rgba(0,0,0,.25);text-align:center;
+}
+#pin-box .lock-icon{font-size:40px;margin-bottom:12px}
+#pin-box h3{font-size:18px;font-weight:800;margin-bottom:4px}
+#pin-box p{font-size:13px;color:var(--muted);margin-bottom:24px}
+.pin-dots{
+  display:flex;justify-content:center;gap:14px;margin-bottom:20px;
+}
+.pin-dot{
+  width:14px;height:14px;border-radius:50%;border:2px solid var(--border);
+  transition:all .2s;
+}
+.pin-dot.filled{background:var(--blue);border-color:var(--blue)}
+.pin-dot.error{background:var(--red);border-color:var(--red)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.pin-key{
+  padding:14px;border-radius:10px;font-size:18px;font-weight:700;
+  background:var(--bg);border:1px solid var(--border);color:var(--text);
+  cursor:pointer;transition:all .12s;user-select:none;
+}
+.pin-key:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.pin-key:active{transform:scale(.94)}
+.pin-key.wide{grid-column:span 2}
+.pin-key.del{background:var(--bg);color:var(--muted)}
+.pin-error{font-size:12px;color:var(--red);font-weight:600;min-height:18px;margin-bottom:6px}
+#pin-cancel{font-size:12px;color:var(--muted);cursor:pointer;margin-top:4px;
+  text-decoration:underline;background:none;border:none}
+
 /* ── SCROLLBAR ───────────────────────────────────────────── */
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -471,8 +508,8 @@ select.filter-select:focus{border-color:var(--blue)}
   <div class="sb-section">
     <div class="sb-section-label">Team</div>
     <ul>
-      <li class="sb-nav-item" data-section="commissions" onclick="showSection('commissions',this)">
-        <span class="nav-icon">💵</span><span class="nav-label">Commissions</span>
+      <li class="sb-nav-item" data-section="commissions" onclick="requestCommAccess(this)">
+        <span class="nav-icon">🔒</span><span class="nav-label">Commissions</span>
       </li>
       <li class="sb-nav-item" data-section="leaderboard" onclick="showSection('leaderboard',this)">
         <span class="nav-icon">🏆</span><span class="nav-label">Leaderboard</span>
@@ -845,6 +882,36 @@ select.filter-select:focus{border-color:var(--blue)}
   </div><!-- /content -->
 </div><!-- /main -->
 
+<!-- PIN MODAL -->
+<div id="pin-overlay">
+  <div id="pin-box">
+    <div class="lock-icon">🔐</div>
+    <h3>Private Access</h3>
+    <p>Enter your 4-digit PIN to view<br>commission payouts.</p>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key wide" onclick="pinKey('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <button id="pin-cancel" onclick="closePin()">Cancel</button>
+  </div>
+</div>
+
 <script>
 /* ══════════════════════════════════════════════════════════
    DATA LAYER — embedded sample data
@@ -925,7 +992,7 @@ const SETTERS = [
 ];
 const OPERATORS = [
   {id:'alex',name:'Alex G.',color:'#10B981',avatar:'AG',role:'Growth Operator',
-   overrideRate:0.05},
+   overrideRate:0.15},
 ];
 
 // Totals
@@ -962,8 +1029,8 @@ T.cashAfterFees = T.cash*0.971;
 T.aov           = T.cash/T.closed;
 // Commissions
 T.closerComm    = T.cash*0.10;
-T.setterComm    = T.cash*0.03;
-T.operatorComm  = T.cash*0.05;
+T.setterComm    = T.cash*0.05;
+T.operatorComm  = T.cash*0.15;
 T.totalComm     = T.closerComm+T.setterComm+T.operatorComm;
 
 // Weekly commission trend (8 weeks)
@@ -991,6 +1058,80 @@ Chart.defaults.font.size = 11;
 Chart.defaults.color = '#64748B';
 Chart.defaults.plugins.legend.labels.boxWidth = 10;
 Chart.defaults.plugins.legend.labels.padding = 14;
+
+/* ══════════════════════════════════════════════════════════
+   PIN LOCK — commissions are private
+   Change PIN_HASH to SHA-256 of your desired PIN if needed.
+   Default PIN: 2580
+   ══════════════════════════════════════════════════════════ */
+const CORRECT_PIN = '2580'; // ← change this to your preferred PIN
+let pinBuffer = '';
+let commUnlocked = false;
+let pendingNavEl = null;
+
+function requestCommAccess(el){
+  if(commUnlocked){ showSection('commissions', el); return; }
+  pendingNavEl = el;
+  pinBuffer = '';
+  updateDots();
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('pin-overlay').classList.add('visible');
+}
+
+function pinKey(k){
+  if(pinBuffer.length >= 4) return;
+  pinBuffer += k;
+  updateDots();
+  if(pinBuffer.length === 4) setTimeout(checkPin, 120);
+}
+
+function pinDel(){
+  pinBuffer = pinBuffer.slice(0,-1);
+  updateDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function updateDots(){
+  for(let i=0;i<4;i++){
+    const d = document.getElementById('pd'+i);
+    d.classList.toggle('filled', i < pinBuffer.length);
+    d.classList.remove('error');
+  }
+}
+
+function checkPin(){
+  if(pinBuffer === CORRECT_PIN){
+    commUnlocked = true;
+    document.getElementById('pin-overlay').classList.remove('visible');
+    // unlock icon in sidebar
+    const navEl = pendingNavEl || document.querySelector('[data-section=commissions]');
+    if(navEl) navEl.querySelector('.nav-icon').textContent = '💵';
+    showSection('commissions', navEl);
+  } else {
+    for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.add('error');
+    document.getElementById('pin-error').textContent = 'Incorrect PIN. Try again.';
+    setTimeout(()=>{ pinBuffer=''; updateDots(); }, 800);
+  }
+}
+
+function closePin(){
+  document.getElementById('pin-overlay').classList.remove('visible');
+  pinBuffer = '';
+  updateDots();
+}
+
+// Close on overlay click
+document.getElementById('pin-overlay').addEventListener('click', e=>{
+  if(e.target === document.getElementById('pin-overlay')) closePin();
+});
+
+// Keyboard support for PIN
+document.addEventListener('keydown', e=>{
+  if(!document.getElementById('pin-overlay').classList.contains('visible')) return;
+  if(e.key>='0' && e.key<='9') pinKey(e.key);
+  else if(e.key==='Backspace') pinDel();
+  else if(e.key==='Escape') closePin();
+});
 
 /* ══════════════════════════════════════════════════════════
    NAV
@@ -1605,10 +1746,10 @@ function renderCommissions(){
   const setterCashRatio = SETTERS.map(s=>s.sets/SETTERS.reduce((a,x)=>a+x.sets,0));
   document.getElementById('setter-commissions').innerHTML = SETTERS.map((s,i)=>{
     const revShare = T.cash*setterCashRatio[i];
-    const comm = revShare*0.03;
+    const comm = revShare*0.05;
     return `<div class="comm-card">
       <div class="comm-name">${avatar(s,24)}<span>${s.name}</span></div>
-      <div class="comm-role">Sales Setter · 3% Commission</div>
+      <div class="comm-role">Sales Setter · 5% Commission</div>
       <div class="comm-row"><span class="comm-row-label">Sets Booked</span><span class="comm-row-value">${s.sets}</span></div>
       <div class="comm-row"><span class="comm-row-label">Pickup Rate</span><span class="comm-row-value">${fmtPct(s.pickups/s.calls*100)}</span></div>
       <div class="comm-row"><span class="comm-row-label">Set Rate</span><span class="comm-row-value">${fmtPct(s.sets/s.pickups*100)}</span></div>
@@ -1626,7 +1767,7 @@ function renderCommissions(){
     const comm = T.cash*op.overrideRate;
     return `<div class="comm-card">
       <div class="comm-name">${avatar(op,24)}<span>${op.name}</span></div>
-      <div class="comm-role">Growth Operator · 5% Override</div>
+      <div class="comm-role">Growth Operator · 15% Override</div>
       <div class="comm-row"><span class="comm-row-label">Total Revenue</span><span class="comm-row-value">${fmtCur(T.cash)}</span></div>
       <div class="comm-row"><span class="comm-row-label">Override Rate</span><span class="comm-row-value">5%</span></div>
       <div class="comm-row"><span class="comm-row-label">Deals Overseen</span><span class="comm-row-value">${T.closed}</span></div>
