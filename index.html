@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales & Funnel Analytics — Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── TOKENS ───────────────────────────────────────────────── */
+:root {
+  --bg:       #F8FAFC;
+  --surface:  #FFFFFF;
+  --border:   #E2E8F0;
+  --sidebar:  #0F172A;
+  --sidebar2: #1E293B;
+  --text:     #0F172A;
+  --muted:    #64748B;
+  --blue:     #3B82F6;
+  --blue-d:   #1D4ED8;
+  --green:    #10B981;
+  --red:      #EF4444;
+  --amber:    #F59E0B;
+  --purple:   #8B5CF6;
+  --cyan:     #06B6D4;
+  --pink:     #EC4899;
+  --r:        10px;
+  --r-sm:     6px;
+  --shadow:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.08);
+}
+
+/* ── RESET ───────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);
+  display:flex;min-height:100vh;font-size:14px;line-height:1.5}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;border:none;background:none;font-family:inherit}
+input,select{font-family:inherit}
+ul{list-style:none}
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+#sidebar{
+  width:220px;min-width:220px;background:var(--sidebar);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;
+  height:100vh;z-index:100;overflow-y:auto;
+}
+.sb-brand{
+  padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.sb-brand .logo{
+  display:flex;align-items:center;gap:10px;
+}
+.sb-brand .logo-icon{
+  width:32px;height:32px;background:linear-gradient(135deg,var(--blue),var(--purple));
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:800;color:#fff;flex-shrink:0;
+}
+.sb-brand .logo-text{font-size:13px;font-weight:700;color:#fff;line-height:1.2}
+.sb-brand .logo-sub{font-size:10px;color:rgba(255,255,255,.4);font-weight:400}
+
+.sb-section{padding:14px 10px 4px}
+.sb-section-label{
+  font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:rgba(255,255,255,.3);padding:0 8px;margin-bottom:4px;
+}
+.sb-nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;
+  border-radius:var(--r-sm);color:rgba(255,255,255,.55);font-size:13px;
+  font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:1px;
+}
+.sb-nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9)}
+.sb-nav-item.active{
+  background:rgba(59,130,246,.18);color:#fff;
+}
+.sb-nav-item.active .nav-icon{color:var(--blue)}
+.nav-icon{width:17px;text-align:center;font-size:15px;flex-shrink:0}
+.sb-badge{
+  margin-left:auto;background:var(--blue);color:#fff;
+  font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;
+}
+
+.sb-footer{
+  margin-top:auto;padding:14px;border-top:1px solid rgba(255,255,255,.06);
+}
+.sb-updated{font-size:10px;color:rgba(255,255,255,.3);line-height:1.6}
+.sb-updated strong{color:rgba(255,255,255,.6);display:block}
+.live-dot{
+  display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--green);margin-right:4px;
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── MAIN ────────────────────────────────────────────────── */
+#main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-width:0}
+
+/* ── TOP BAR ─────────────────────────────────────────────── */
+#topbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;height:58px;display:flex;align-items:center;gap:14px;
+  position:sticky;top:0;z-index:50;
+}
+.topbar-title{font-size:15px;font-weight:700;flex:1}
+.topbar-title span{color:var(--muted);font-weight:400;margin-left:6px;font-size:13px}
+
+.filter-group{display:flex;align-items:center;gap:8px}
+.filter-label{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
+
+select.filter-select{
+  padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);
+  font-size:12px;font-weight:500;color:var(--text);background:var(--bg);
+  outline:none;cursor:pointer;
+}
+select.filter-select:focus{border-color:var(--blue)}
+
+.btn{
+  padding:7px 14px;border-radius:var(--r-sm);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;border:none;display:inline-flex;
+  align-items:center;gap:6px;
+}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-d)}
+.btn-ghost{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--border)}
+
+/* ── CONTENT ─────────────────────────────────────────────── */
+#content{padding:24px;display:flex;flex-direction:column;gap:24px}
+
+.section{display:none}
+.section.active{display:block}
+
+/* ── PAGE HEADER ─────────────────────────────────────────── */
+.page-header{margin-bottom:20px}
+.page-header h2{font-size:20px;font-weight:800;margin-bottom:3px}
+.page-header p{font-size:13px;color:var(--muted)}
+
+/* ── CARDS ───────────────────────────────────────────────── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px;box-shadow:var(--shadow);
+}
+.card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;
+}
+.card-title{font-size:13px;font-weight:700;color:var(--text)}
+.card-subtitle{font-size:11px;color:var(--muted);margin-top:1px}
+.card-action{font-size:11px;color:var(--blue);font-weight:600;cursor:pointer}
+
+/* ── KPI GRID ────────────────────────────────────────────── */
+.kpi-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;
+}
+.kpi-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:18px 18px 16px;
+  box-shadow:var(--shadow);position:relative;overflow:hidden;
+}
+.kpi-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  border-radius:var(--r) var(--r) 0 0;
+}
+.kpi-card.blue::before{background:var(--blue)}
+.kpi-card.green::before{background:var(--green)}
+.kpi-card.purple::before{background:var(--purple)}
+.kpi-card.amber::before{background:var(--amber)}
+.kpi-card.red::before{background:var(--red)}
+.kpi-card.cyan::before{background:var(--cyan)}
+.kpi-card.pink::before{background:var(--pink)}
+
+.kpi-label{font-size:11px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.kpi-value{font-size:26px;font-weight:800;line-height:1;margin-bottom:6px}
+.kpi-meta{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.kpi-badge{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;
+}
+.kpi-badge.up{background:#ECFDF5;color:var(--green)}
+.kpi-badge.down{background:#FEF2F2;color:var(--red)}
+.kpi-badge.warn{background:#FFFBEB;color:var(--amber)}
+.kpi-goal{
+  margin-top:8px;font-size:10px;color:var(--muted);
+  display:flex;align-items:center;gap:6px;
+}
+.goal-bar{flex:1;height:4px;background:var(--border);border-radius:4px;overflow:hidden}
+.goal-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.goal-fill.green{background:var(--green)}
+.goal-fill.amber{background:var(--amber)}
+.goal-fill.red{background:var(--red)}
+.goal-fill.blue{background:var(--blue)}
+
+/* ── GRID LAYOUTS ────────────────────────────────────────── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+.grid-1-2{display:grid;grid-template-columns:1fr 2fr;gap:16px}
+.grid-3-2{display:grid;grid-template-columns:3fr 2fr;gap:16px}
+
+/* ── FUNNEL VISUAL ───────────────────────────────────────── */
+.funnel-visual{display:flex;flex-direction:column;gap:6px;padding:8px 0}
+.funnel-step{
+  display:flex;align-items:center;gap:12px;
+}
+.funnel-bar-wrap{
+  flex:1;background:var(--border);border-radius:4px;height:36px;
+  overflow:hidden;position:relative;
+}
+.funnel-bar{
+  height:100%;border-radius:4px;display:flex;align-items:center;
+  padding:0 12px;transition:width .8s ease;
+}
+.funnel-bar span{font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
+.funnel-label{width:140px;font-size:12px;font-weight:600;color:var(--text);text-align:right}
+.funnel-pct{width:50px;font-size:12px;font-weight:700;text-align:right;color:var(--muted)}
+.funnel-connector{
+  width:1px;height:14px;background:var(--border);
+  margin:0 auto;position:relative;
+}
+.funnel-connector::after{
+  content:'▾';position:absolute;bottom:-8px;left:50%;
+  transform:translateX(-50%);font-size:10px;color:var(--muted);
+}
+
+/* ── TABLES ──────────────────────────────────────────────── */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--muted);padding:10px 14px;border-bottom:2px solid var(--border);
+  text-align:left;background:var(--bg);
+}
+.data-table th.right{text-align:right}
+.data-table td{
+  padding:12px 14px;border-bottom:1px solid var(--border);
+  font-size:13px;
+}
+.data-table td.right{text-align:right;font-weight:600}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:#F8FAFC}
+
+.rep-avatar{
+  width:30px;height:30px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;color:#fff;margin-right:8px;flex-shrink:0;
+}
+.rep-name-cell{display:flex;align-items:center}
+
+.rate-pill{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;
+}
+.rate-pill.good{background:#ECFDF5;color:#059669}
+.rate-pill.warn{background:#FFFBEB;color:#D97706}
+.rate-pill.bad {background:#FEF2F2;color:#DC2626}
+.rate-pill.neutral{background:#F1F5F9;color:#475569}
+
+/* ── PROGRESS RINGS / GAUGES ─────────────────────────────── */
+.gauge-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;
+}
+.gauge-item{text-align:center;padding:12px 8px}
+.gauge-label{font-size:11px;font-weight:600;color:var(--muted);margin-top:8px}
+.gauge-value{font-size:20px;font-weight:800;margin:2px 0}
+.gauge-target{font-size:10px;color:var(--muted)}
+
+/* ── SOURCE BREAKDOWN ────────────────────────────────────── */
+.source-row{
+  display:flex;align-items:center;gap:12px;padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
+.source-row:last-child{border-bottom:none}
+.source-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+}
+.source-name{flex:1;font-size:13px;font-weight:600}
+.source-bar-wrap{width:140px;height:6px;background:var(--border);border-radius:4px;overflow:hidden}
+.source-bar{height:100%;border-radius:4px}
+.source-count{width:50px;text-align:right;font-size:13px;font-weight:700}
+.source-pct{width:42px;text-align:right;font-size:12px;color:var(--muted)}
+
+/* ── OBJECTION LOG ───────────────────────────────────────── */
+.obj-row{
+  display:flex;align-items:center;gap:12px;padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
+.obj-row:last-child{border-bottom:none}
+.obj-tag{
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;
+  background:#EFF6FF;color:var(--blue);white-space:nowrap;
+}
+.obj-text{flex:1;font-size:13px;font-weight:500}
+.obj-count{
+  font-size:13px;font-weight:800;color:var(--text);width:32px;text-align:right;
+}
+.obj-bar{width:80px;height:5px;background:var(--border);border-radius:4px;overflow:hidden}
+.obj-fill{height:100%;border-radius:4px;background:var(--blue)}
+
+/* ── COMMISSION CARDS ────────────────────────────────────── */
+.commission-section{margin-bottom:20px}
+.commission-section h3{
+  font-size:14px;font-weight:700;margin-bottom:12px;padding-bottom:8px;
+  border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px;
+}
+.comm-icon{
+  width:26px;height:26px;border-radius:6px;display:flex;align-items:center;
+  justify-content:center;font-size:13px;
+}
+.comm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.comm-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px;box-shadow:var(--shadow);
+}
+.comm-name{font-size:13px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.comm-role{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:12px}
+.comm-row{display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)}
+.comm-row:last-child{border-bottom:none}
+.comm-row-label{color:var(--muted)}
+.comm-row-value{font-weight:700}
+.comm-total{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:12px;padding-top:10px;border-top:2px solid var(--border);
+}
+.comm-total-label{font-size:12px;font-weight:700;color:var(--muted)}
+.comm-total-value{font-size:18px;font-weight:800;color:var(--green)}
+
+/* ── LEADERBOARD ─────────────────────────────────────────── */
+.lb-rank{
+  width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;
+}
+.lb-rank.gold{background:#FEF9C3;color:#B45309}
+.lb-rank.silver{background:#F1F5F9;color:#475569}
+.lb-rank.bronze{background:#FEF3C7;color:#92400E}
+.lb-rank.other{background:var(--bg);color:var(--muted)}
+
+.sparkline-wrap{width:80px;height:28px}
+
+/* ── STAT SUMMARY ROW ────────────────────────────────────── */
+.stat-row{
+  display:flex;gap:0;border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;background:var(--surface);
+}
+.stat-item{
+  flex:1;padding:16px;text-align:center;border-right:1px solid var(--border);
+}
+.stat-item:last-child{border-right:none}
+.stat-val{font-size:22px;font-weight:800;margin-bottom:2px}
+.stat-lbl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.06em}
+
+/* ── TABS ────────────────────────────────────────────────── */
+.tab-bar{
+  display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;
+}
+.tab{
+  padding:10px 18px;font-size:13px;font-weight:600;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;
+  transition:all .15s;
+}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* ── SECTION DIVIDER ─────────────────────────────────────── */
+.section-divider{
+  display:flex;align-items:center;gap:12px;margin:8px 0 18px;
+}
+.section-divider h3{
+  font-size:15px;font-weight:800;white-space:nowrap;
+}
+.section-divider .divider-line{
+  flex:1;height:1px;background:var(--border);
+}
+.section-badge{
+  font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;
+  background:#EFF6FF;color:var(--blue);white-space:nowrap;
+}
+
+/* ── EMPTY & UTILITY ─────────────────────────────────────── */
+.mt-16{margin-top:16px}
+.mb-16{margin-bottom:16px}
+.text-green{color:var(--green)}
+.text-red{color:var(--red)}
+.text-amber{color:var(--amber)}
+.text-blue{color:var(--blue)}
+.text-muted{color:var(--muted)}
+.fw-700{font-weight:700}
+.fw-800{font-weight:800}
+.fs-12{font-size:12px}
+.fs-11{font-size:11px}
+
+/* ── CHART CONTAINERS ────────────────────────────────────── */
+.chart-wrap{position:relative;height:200px}
+.chart-wrap.tall{height:260px}
+.chart-wrap.short{height:150px}
+
+/* ── TOOLTIP OVERRIDE ────────────────────────────────────── */
+.chartjs-tooltip{
+  background:var(--sidebar)!important;
+  border-radius:var(--r-sm)!important;
+}
+
+/* ── SCROLLBAR ───────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#CBD5E1}
+
+/* ── RESPONSIVE ──────────────────────────────────────────── */
+@media(max-width:1100px){
+  .grid-2{grid-template-columns:1fr}
+  .grid-3{grid-template-columns:1fr 1fr}
+  .grid-2-1{grid-template-columns:1fr}
+  .grid-1-2{grid-template-columns:1fr}
+  .grid-3-2{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  #sidebar{width:64px;min-width:64px}
+  .sb-brand .logo-text,.sb-brand .logo-sub,.sb-nav-item .nav-label,
+  .sb-section-label,.sb-badge,.sb-footer .sb-updated strong,
+  .sb-footer .sb-updated span:not(.live-dot){display:none}
+  .sb-nav-item{justify-content:center;padding:10px}
+  .nav-icon{margin:0}
+  #main{margin-left:64px}
+  .grid-3{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ════════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="sb-brand">
+    <div class="logo">
+      <div class="logo-icon">SC</div>
+      <div>
+        <div class="logo-text">SalesCommand</div>
+        <div class="logo-sub">Analytics Platform</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Main</div>
+    <ul>
+      <li class="sb-nav-item active" data-section="overview" onclick="showSection('overview',this)">
+        <span class="nav-icon">⚡</span><span class="nav-label">Overview</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Funnel</div>
+    <ul>
+      <li class="sb-nav-item" data-section="funnel" onclick="showSection('funnel',this)">
+        <span class="nav-icon">🎯</span><span class="nav-label">Top of Funnel</span>
+      </li>
+      <li class="sb-nav-item" data-section="dialing" onclick="showSection('dialing',this)">
+        <span class="nav-icon">📞</span><span class="nav-label">Dialing Tracker</span>
+      </li>
+      <li class="sb-nav-item" data-section="sales" onclick="showSection('sales',this)">
+        <span class="nav-icon">💰</span><span class="nav-label">Sales Calls</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Team</div>
+    <ul>
+      <li class="sb-nav-item" data-section="commissions" onclick="showSection('commissions',this)">
+        <span class="nav-icon">💵</span><span class="nav-label">Commissions</span>
+      </li>
+      <li class="sb-nav-item" data-section="leaderboard" onclick="showSection('leaderboard',this)">
+        <span class="nav-icon">🏆</span><span class="nav-label">Leaderboard</span>
+        <span class="sb-badge">Live</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="sb-footer">
+    <div class="sb-updated">
+      <strong><span class="live-dot"></span>Live Data</strong>
+      <span>Updated: <span id="last-updated">—</span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ MAIN ════════════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- TOP BAR -->
+  <header id="topbar">
+    <div class="topbar-title" id="topbar-title">
+      Command Center <span>Sales & Funnel Analytics</span>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Period</span>
+      <select class="filter-select" id="filter-period" onchange="applyFilters()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="60">Last 60 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Closer</span>
+      <select class="filter-select" id="filter-closer" onchange="applyFilters()">
+        <option value="all">All Closers</option>
+        <option value="marcus">Marcus R.</option>
+        <option value="sarah">Sarah K.</option>
+        <option value="jake">Jake T.</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Setter</span>
+      <select class="filter-select" id="filter-setter" onchange="applyFilters()">
+        <option value="all">All Setters</option>
+        <option value="zoe">Zoe M.</option>
+        <option value="cam">Cam L.</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Source</span>
+      <select class="filter-select" id="filter-source" onchange="applyFilters()">
+        <option value="all">All Sources</option>
+        <option value="fb">Facebook Ads</option>
+        <option value="yt">YouTube</option>
+        <option value="ig">Instagram</option>
+        <option value="organic">Organic</option>
+        <option value="dm">DM</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="applyFilters()">⟳ Refresh</button>
+  </header>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- ══ OVERVIEW ═══════════════════════════════════════ -->
+    <section id="section-overview" class="section active">
+      <div class="page-header">
+        <h2>Command Center</h2>
+        <p>Live snapshot of your entire revenue pipeline — funnel, dialing, and sales performance.</p>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid" id="overview-kpis"></div>
+
+      <!-- Charts Row -->
+      <div class="grid-2-1 mt-16">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Revenue & Lead Trend</div>
+              <div class="card-subtitle">Daily cash collected vs. new leads (30 days)</div>
+            </div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="chart-trend"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Lead Source Mix</div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="chart-source-donut"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Funnel Summary -->
+      <div class="grid-3 mt-16">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Funnel Health</div>
+            <span class="card-action" onclick="showSection('funnel', document.querySelector('[data-section=funnel]'))">Details →</span>
+          </div>
+          <div id="overview-funnel-mini"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Dialing KPIs Today</div>
+            <span class="card-action" onclick="showSection('dialing', document.querySelector('[data-section=dialing]'))">Details →</span>
+          </div>
+          <div id="overview-dialing-mini"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Close Rate by Source</div>
+            <span class="card-action" onclick="showSection('sales', document.querySelector('[data-section=sales]'))">Details →</span>
+          </div>
+          <div class="chart-wrap short"><canvas id="chart-close-source"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ FUNNEL ══════════════════════════════════════════ -->
+    <section id="section-funnel" class="section">
+      <div class="page-header">
+        <h2>Top of Funnel Tracking</h2>
+        <p>Opt-ins, applications, qualifications, and booking rates. Goal: Opt-in ≥ 30%.</p>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="kpi-grid" id="funnel-kpis"></div>
+
+      <!-- Visual Funnel + Charts -->
+      <div class="grid-2 mt-16">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Conversion Funnel</div>
+          </div>
+          <div id="funnel-visual-container"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Application Qualification Split</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-qual-split"></canvas></div>
+          <div id="qual-legend" style="display:flex;gap:16px;justify-content:center;margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- Source Breakdown + Booking Trend -->
+      <div class="grid-2 mt-16">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Source Breakdown</div>
+            <div class="card-subtitle">Platform → Campaign → Content</div>
+          </div>
+          <div id="source-breakdown"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Daily Opt-in Trend</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-optin-trend"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Cancel / Confirm -->
+      <div class="card mt-16">
+        <div class="card-header">
+          <div class="card-title">Confirm & Cancel Rate by Source</div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-confirm-cancel"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ══ DIALING ═════════════════════════════════════════ -->
+    <section id="section-dialing" class="section">
+      <div class="page-header">
+        <h2>Dialing Tracker — Middle Funnel</h2>
+        <p>Pickup rates, set rates, daily rep KPIs, and objection intelligence.</p>
+      </div>
+
+      <div class="kpi-grid" id="dialing-kpis"></div>
+
+      <!-- Rep Table + Pickup Chart -->
+      <div class="grid-2 mt-16">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Daily KPIs — Per Rep</div>
+          </div>
+          <table class="data-table" id="dialing-rep-table"></table>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Pickup & Set Rate by Rep</div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="chart-rep-perf"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Objection Log + Trend -->
+      <div class="grid-2 mt-16">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Objection Log</div>
+            <div class="card-subtitle">Tag + frequency count — use for training</div>
+          </div>
+          <div id="objection-log"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Call Volume Trend</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-call-trend"></canvas></div>
+          <div class="card-header" style="margin-top:16px;margin-bottom:0">
+            <div class="card-title">Working Hours Logged This Week</div>
+          </div>
+          <div id="working-hours" class="mt-16"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ SALES CALLS ═════════════════════════════════════ -->
+    <section id="section-sales" class="section">
+      <div class="page-header">
+        <h2>Sales Call Tracking — Bottom Funnel</h2>
+        <p>Cash collected, close rates, show rates, and deal attribution.</p>
+      </div>
+
+      <div class="kpi-grid" id="sales-kpis"></div>
+
+      <!-- Cash Chart + Close Rates -->
+      <div class="grid-2 mt-16">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Cash Collected vs. After Fees</div>
+            <div class="card-subtitle">2.9% processor fee applied</div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="chart-cash"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Show Rate / Close Rate Breakdown</div>
+          </div>
+          <div class="gauge-grid" id="sales-gauges"></div>
+          <div class="card-header" style="margin-top:20px;margin-bottom:0">
+            <div class="card-title">Close Rate: Organic vs. Paid</div>
+          </div>
+          <div class="chart-wrap short" style="margin-top:14px">
+            <canvas id="chart-close-organic-paid"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Closer Performance Table -->
+      <div class="card mt-16">
+        <div class="card-header">
+          <div class="card-title">Closer Performance Table</div>
+          <div class="card-subtitle">Filtered by selected period and setter</div>
+        </div>
+        <table class="data-table" id="closer-table"></table>
+      </div>
+
+      <!-- Source Attribution -->
+      <div class="grid-2 mt-16">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Revenue by Source</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-rev-source"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Deal Attribution</div>
+            <div class="card-subtitle">Closer · Setter · Medium · Content</div>
+          </div>
+          <table class="data-table" id="attribution-table"></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ COMMISSIONS ═════════════════════════════════════ -->
+    <section id="section-commissions" class="section">
+      <div class="page-header">
+        <h2>Commission Tracking</h2>
+        <p>Individual closer & setter commissions plus growth operator override.</p>
+      </div>
+
+      <!-- Summary stat row -->
+      <div class="stat-row mb-16" id="comm-summary-row"></div>
+
+      <!-- Closers -->
+      <div class="commission-section">
+        <h3>
+          <span class="comm-icon" style="background:#EFF6FF">🎯</span>
+          Closer Commissions
+          <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px">10% of cash collected on closed deals</span>
+        </h3>
+        <div class="comm-grid" id="closer-commissions"></div>
+      </div>
+
+      <!-- Setters -->
+      <div class="commission-section">
+        <h3>
+          <span class="comm-icon" style="background:#F5F3FF">📞</span>
+          Setter Commissions
+          <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px">3% of revenue generated from their sets</span>
+        </h3>
+        <div class="comm-grid" id="setter-commissions"></div>
+      </div>
+
+      <!-- Growth Operator -->
+      <div class="commission-section">
+        <h3>
+          <span class="comm-icon" style="background:#ECFDF5">📈</span>
+          Growth Operator
+          <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px">5% override on total revenue</span>
+        </h3>
+        <div class="comm-grid" id="operator-commissions"></div>
+      </div>
+
+      <!-- Commission Trend -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Commission Payout Trend</div>
+          <div class="card-subtitle">Weekly payouts across all roles</div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chart-comm-trend"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ══ LEADERBOARD ══════════════════════════════════════ -->
+    <section id="section-leaderboard" class="section">
+      <div class="page-header">
+        <h2>Rep Leaderboard</h2>
+        <p>Ranked by cash collected. Live rankings reset monthly.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Closers Ranking</div>
+          </div>
+          <table class="data-table" id="lb-closers"></table>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Setters Ranking</div>
+          </div>
+          <table class="data-table" id="lb-setters"></table>
+        </div>
+      </div>
+
+      <div class="card mt-16">
+        <div class="card-header">
+          <div class="card-title">Rep Performance Radar</div>
+          <div class="card-subtitle">Close rate · Show rate · AOV · Sets booked · Cash collected</div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chart-radar"></canvas></div>
+      </div>
+
+      <div class="card mt-16">
+        <div class="card-header">
+          <div class="card-title">Weekly Cash Collected — All Reps</div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chart-rep-weekly"></canvas></div>
+      </div>
+    </section>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   DATA LAYER — embedded sample data
+   ══════════════════════════════════════════════════════════ */
+
+const DAYS = 30;
+const today = new Date();
+function daysAgo(n){ const d=new Date(today); d.setDate(d.getDate()-n); return d; }
+function fmtDate(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function fmtCur(n){ return '$'+n.toLocaleString('en-US',{maximumFractionDigits:0}); }
+function fmtPct(n){ return n.toFixed(1)+'%'; }
+
+// Generate daily funnel data
+const dailyData = Array.from({length:DAYS},(_,i)=>{
+  const d = daysAgo(DAYS-1-i);
+  const impressions = 1200+Math.round(Math.sin(i*0.5)*300+Math.random()*400);
+  const optins      = Math.round(impressions*(0.29+Math.random()*0.06));
+  const appStarted  = Math.round(optins*(0.55+Math.random()*0.08));
+  const appComplete = Math.round(appStarted*(0.72+Math.random()*0.08));
+  const qualified   = Math.round(appComplete*(0.44+Math.random()*0.08));
+  const unqualified = Math.round(appComplete*(0.28+Math.random()*0.06));
+  const partial     = appComplete-qualified-unqualified;
+  const booked      = Math.round(qualified*(0.62+Math.random()*0.07));
+  const confirmed   = Math.round(booked*(0.78+Math.random()*0.06));
+  const cancelled   = booked-confirmed;
+  const showed      = Math.round(confirmed*(0.78+Math.random()*0.06));
+  const closed      = Math.round(showed*(0.38+Math.random()*0.08));
+  const aov         = 4800+Math.round(Math.random()*2400);
+  const cash        = closed*aov;
+  // Dialing
+  const calls       = 80+Math.round(Math.random()*60);
+  const pickups     = Math.round(calls*(0.52+Math.random()*0.08));
+  const sets        = Math.round(pickups*(0.38+Math.random()*0.08));
+  const hangups     = Math.round(pickups*(0.20+Math.random()*0.06));
+  return {date:d,impressions,optins,appStarted,appComplete,
+          qualified,unqualified,partial,booked,confirmed,cancelled,
+          showed,closed,aov,cash,calls,pickups,sets,hangups};
+});
+
+// Sources
+const SOURCES = [
+  {id:'fb',   name:'Facebook Ads', color:'#1877F2'},
+  {id:'yt',   name:'YouTube',      color:'#FF0000'},
+  {id:'ig',   name:'Instagram',    color:'#E1306C'},
+  {id:'organic',name:'Organic',    color:'#10B981'},
+  {id:'dm',   name:'DM Outreach',  color:'#8B5CF6'},
+];
+const sourceData = SOURCES.map((s,i)=>{
+  const weights=[0.32,0.24,0.20,0.14,0.10];
+  const tot = dailyData.reduce((a,d)=>a+d.optins,0);
+  const leads = Math.round(tot*weights[i]);
+  const cr    = i===3?0.52:i===4?0.48:0.28+i*0.02;
+  const closed= Math.round(leads*0.65*0.79*cr); // rough funnel
+  const aov   = 4800+i*400;
+  const cash  = closed*aov;
+  const confirmRate = 0.82-i*0.03;
+  const cancelRate  = 1-confirmRate;
+  return {...s,leads,closed,cash,cr,confirmRate,cancelRate};
+});
+
+// Reps
+const CLOSERS = [
+  {id:'marcus',name:'Marcus R.',color:'#3B82F6',avatar:'MR',
+   calls:312,showed:248,closed:112,cash:581400,aov:5191,
+   organic:0.54,paid:0.33,noshow:0.108,disqualRate:0.09},
+  {id:'sarah', name:'Sarah K.', color:'#8B5CF6',avatar:'SK',
+   calls:287,showed:226,closed:98, cash:519400,aov:5300,
+   organic:0.51,paid:0.31,noshow:0.119,disqualRate:0.11},
+  {id:'jake',  name:'Jake T.',  color:'#06B6D4',avatar:'JT',
+   calls:259,showed:198,closed:79, cash:396200,aov:5015,
+   organic:0.49,paid:0.28,noshow:0.131,disqualRate:0.13},
+];
+const SETTERS = [
+  {id:'zoe',name:'Zoe M.',color:'#EC4899',avatar:'ZM',
+   calls:1820,pickups:1010,sets:412,hangups:198,qualified:820,notSet:218,hours:42},
+  {id:'cam',name:'Cam L.',color:'#F59E0B',avatar:'CL',
+   calls:1420,pickups:772,sets:300,hangups:171,qualified:612,notSet:162,hours:38},
+];
+const OPERATORS = [
+  {id:'alex',name:'Alex G.',color:'#10B981',avatar:'AG',role:'Growth Operator',
+   overrideRate:0.05},
+];
+
+// Totals
+const T = {
+  impressions: dailyData.reduce((a,d)=>a+d.impressions,0),
+  optins:      dailyData.reduce((a,d)=>a+d.optins,0),
+  appComplete: dailyData.reduce((a,d)=>a+d.appComplete,0),
+  qualified:   dailyData.reduce((a,d)=>a+d.qualified,0),
+  unqualified: dailyData.reduce((a,d)=>a+d.unqualified,0),
+  partial:     dailyData.reduce((a,d)=>a+d.partial,0),
+  booked:      dailyData.reduce((a,d)=>a+d.booked,0),
+  confirmed:   dailyData.reduce((a,d)=>a+d.confirmed,0),
+  cancelled:   dailyData.reduce((a,d)=>a+d.cancelled,0),
+  showed:      dailyData.reduce((a,d)=>a+d.showed,0),
+  closed:      dailyData.reduce((a,d)=>a+d.closed,0),
+  cash:        dailyData.reduce((a,d)=>a+d.cash,0),
+  calls:       dailyData.reduce((a,d)=>a+d.calls,0),
+  pickups:     dailyData.reduce((a,d)=>a+d.pickups,0),
+  sets:        dailyData.reduce((a,d)=>a+d.sets,0),
+  hangups:     dailyData.reduce((a,d)=>a+d.hangups,0),
+};
+T.optin_rate    = T.optins/T.impressions*100;
+T.app_complete  = T.appComplete/T.optins*100;
+T.qual_rate     = T.qualified/T.appComplete*100;
+T.booked_rate   = T.booked/T.qualified*100;
+T.confirm_rate  = T.confirmed/T.booked*100;
+T.cancel_rate   = T.cancelled/T.booked*100;
+T.show_rate     = T.showed/T.confirmed*100;
+T.close_rate    = T.closed/T.showed*100;
+T.pickup_rate   = T.pickups/T.calls*100;
+T.set_rate      = T.sets/T.pickups*100;
+T.hangup_rate   = T.hangups/T.pickups*100;
+T.cashAfterFees = T.cash*0.971;
+T.aov           = T.cash/T.closed;
+// Commissions
+T.closerComm    = T.cash*0.10;
+T.setterComm    = T.cash*0.03;
+T.operatorComm  = T.cash*0.05;
+T.totalComm     = T.closerComm+T.setterComm+T.operatorComm;
+
+// Weekly commission trend (8 weeks)
+const weeklyComm = Array.from({length:8},(_,i)=>({
+  label:`Wk ${i+1}`,
+  closer: 18000+Math.round(Math.random()*12000),
+  setter:  5400+Math.round(Math.random()*3600),
+  operator:9000+Math.round(Math.random()*6000),
+}));
+
+// Objections
+const OBJECTIONS = [
+  {tag:'Price',text:'Too expensive / not in budget',count:47},
+  {tag:'Timing',text:'Not the right time right now',count:38},
+  {tag:'Think',text:'Need to think about it',count:35},
+  {tag:'Spouse',text:'Need to talk to my partner',count:29},
+  {tag:'Trust',text:'How do I know this works?',count:24},
+  {tag:'DIY',text:'I can figure this out myself',count:18},
+  {tag:'Busy',text:'Too busy to commit right now',count:14},
+];
+
+// Chart.js global defaults
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#64748B';
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.padding = 14;
+
+/* ══════════════════════════════════════════════════════════
+   NAV
+   ══════════════════════════════════════════════════════════ */
+function showSection(id, el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sb-nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  const titles={
+    overview:'Command Center',funnel:'Top of Funnel',
+    dialing:'Dialing Tracker',sales:'Sales Calls',
+    commissions:'Commissions',leaderboard:'Leaderboard'
+  };
+  document.getElementById('topbar-title').innerHTML =
+    `${titles[id]||id} <span>Sales & Funnel Analytics</span>`;
+}
+
+function applyFilters(){
+  // In a real app, this would re-filter all data.
+  // Here we just re-render with a brief visual cue.
+  document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER HELPERS
+   ══════════════════════════════════════════════════════════ */
+function goalBar(pct, goal, maxPct=100){
+  const fill = Math.min(pct/goal*100, 100);
+  const cls  = pct>=goal?'green':pct>=goal*0.85?'amber':'red';
+  return `<div class="kpi-goal">
+    <div class="goal-bar"><div class="goal-fill ${cls}" style="width:${fill}%"></div></div>
+    <span>Goal: ${goal}%</span>
+  </div>`;
+}
+function badge(val, good, warn){
+  const cls = val>=good?'up':val>=warn?'warn':'down';
+  const arrow = val>=good?'↑':val>=warn?'→':'↓';
+  return `<span class="kpi-badge ${cls}">${arrow} ${fmtPct(val)}</span>`;
+}
+function ratePill(val, good, warn){
+  const cls = val>=good?'good':val>=warn?'warn':'bad';
+  return `<span class="rate-pill ${cls}">${fmtPct(val)}</span>`;
+}
+function avatar(rep, size=30){
+  return `<div class="rep-avatar" style="width:${size}px;height:${size}px;background:${rep.color};font-size:${size*0.37}px">${rep.avatar}</div>`;
+}
+function rankBadge(i){
+  if(i===0)return`<div class="lb-rank gold">${i+1}</div>`;
+  if(i===1)return`<div class="lb-rank silver">${i+1}</div>`;
+  if(i===2)return`<div class="lb-rank bronze">${i+1}</div>`;
+  return`<div class="lb-rank other">${i+1}</div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   OVERVIEW
+   ══════════════════════════════════════════════════════════ */
+function renderOverview(){
+  const kpis=[
+    {label:'Total Cash Collected',val:fmtCur(T.cash),meta:'Period total',
+     badge:`<span class="kpi-badge up">↑ 18.4%</span>`,color:'blue',
+     goal:`${goalBar(T.optin_rate,30)}`},
+    {label:'Opt-in Rate',val:fmtPct(T.optin_rate),meta:`${T.optins.toLocaleString()} opt-ins`,
+     badge:badge(T.optin_rate,30,22),color:'green',goal:goalBar(T.optin_rate,30)},
+    {label:'Deals Closed',val:T.closed,meta:`Show rate: ${fmtPct(T.show_rate)}`,
+     badge:`<span class="kpi-badge up">↑ 12.1%</span>`,color:'purple'},
+    {label:'Close Rate',val:fmtPct(T.close_rate),meta:'Organic + Paid avg',
+     badge:badge(T.close_rate,38,28),color:'cyan',goal:goalBar(T.close_rate,38)},
+    {label:'Avg Order Value',val:fmtCur(T.aov),meta:'Per closed deal',
+     badge:`<span class="kpi-badge up">↑ 4.2%</span>`,color:'amber'},
+    {label:'Calls Attempted',val:T.calls.toLocaleString(),meta:`Pickup: ${fmtPct(T.pickup_rate)}`,
+     badge:badge(T.pickup_rate,55,42),color:'pink'},
+    {label:'Sets Booked',val:T.sets.toLocaleString(),meta:`Set rate: ${fmtPct(T.set_rate)}`,
+     badge:badge(T.set_rate,38,28),color:'blue',goal:goalBar(T.set_rate,38)},
+    {label:'Cash After Fees',val:fmtCur(T.cashAfterFees),meta:'After 2.9% processor',
+     badge:`<span class="kpi-badge neutral">2.9% fee</span>`,color:'green'},
+  ];
+  document.getElementById('overview-kpis').innerHTML = kpis.map(k=>`
+    <div class="kpi-card ${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-meta">${k.badge||''} <span>${k.meta}</span></div>
+      ${k.goal||''}
+    </div>`).join('');
+
+  // Mini funnel
+  const steps=[
+    {label:'Opt-ins',val:T.optins,of:T.impressions,color:'#3B82F6'},
+    {label:'App Complete',val:T.appComplete,of:T.optins,color:'#8B5CF6'},
+    {label:'Qualified',val:T.qualified,of:T.appComplete,color:'#06B6D4'},
+    {label:'Booked',val:T.booked,of:T.qualified,color:'#10B981'},
+    {label:'Showed',val:T.showed,of:T.booked,color:'#F59E0B'},
+    {label:'Closed',val:T.closed,of:T.showed,color:'#EF4444'},
+  ];
+  document.getElementById('overview-funnel-mini').innerHTML = steps.map(s=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;
+      padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <span style="color:var(--muted);width:90px">${s.label}</span>
+      <div style="flex:1;margin:0 10px;height:5px;background:var(--border);
+        border-radius:4px;overflow:hidden">
+        <div style="width:${s.val/s.of*100}%;height:100%;background:${s.color};
+          border-radius:4px"></div>
+      </div>
+      <span style="font-weight:700;width:40px;text-align:right">
+        ${fmtPct(s.val/s.of*100)}
+      </span>
+    </div>`).join('');
+
+  // Mini dialing
+  const dKpis=[
+    {label:'Calls Today',val:dailyData[DAYS-1].calls,color:'var(--blue)'},
+    {label:'Pickups',val:dailyData[DAYS-1].pickups,color:'var(--green)'},
+    {label:'Sets',val:dailyData[DAYS-1].sets,color:'var(--purple)'},
+    {label:'Hang-ups',val:dailyData[DAYS-1].hangups,color:'var(--red)'},
+  ];
+  document.getElementById('overview-dialing-mini').innerHTML = dKpis.map(k=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;
+      padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--muted)">${k.label}</span>
+      <span style="font-size:18px;font-weight:800;color:${k.color}">${k.val}</span>
+    </div>`).join('');
+
+  // Trend chart
+  const labels = dailyData.map(d=>fmtDate(d.date));
+  new Chart(document.getElementById('chart-trend'),{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Cash Collected',data:dailyData.map(d=>d.cash),
+          borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.08)',
+          tension:.4,fill:true,yAxisID:'y',pointRadius:0,borderWidth:2},
+        {label:'New Leads',data:dailyData.map(d=>d.optins),
+          borderColor:'#10B981',backgroundColor:'rgba(16,185,129,.06)',
+          tension:.4,fill:true,yAxisID:'y2',pointRadius:0,borderWidth:2,
+          borderDash:[4,3]},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top'}},
+      scales:{
+        y:{position:'left',ticks:{callback:v=>'$'+Math.round(v/1000)+'k'}},
+        y2:{position:'right',grid:{drawOnChartArea:false}},
+        x:{ticks:{maxTicksLimit:8}},
+      }
+    }
+  });
+
+  // Source donut
+  new Chart(document.getElementById('chart-source-donut'),{
+    type:'doughnut',
+    data:{
+      labels:sourceData.map(s=>s.name),
+      datasets:[{data:sourceData.map(s=>s.leads),
+        backgroundColor:sourceData.map(s=>s.color),borderWidth:2,
+        hoverOffset:8}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
+      plugins:{legend:{position:'bottom'}}}
+  });
+
+  // Close rate by source bar
+  new Chart(document.getElementById('chart-close-source'),{
+    type:'bar',
+    data:{
+      labels:sourceData.map(s=>s.name),
+      datasets:[{label:'Close Rate',
+        data:sourceData.map(s=>(s.cr*100).toFixed(1)),
+        backgroundColor:sourceData.map(s=>s.color+'CC'),
+        borderRadius:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>v+'%'},max:60,min:0}}}
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   FUNNEL SECTION
+   ══════════════════════════════════════════════════════════ */
+function renderFunnel(){
+  const kpis=[
+    {label:'Impressions',val:T.impressions.toLocaleString(),color:'blue',
+     meta:'Total reach',badge:`<span class="kpi-badge neutral">—</span>`},
+    {label:'Opt-in Rate',val:fmtPct(T.optin_rate),color:'green',
+     meta:`${T.optins.toLocaleString()} opt-ins`,badge:badge(T.optin_rate,30,22),
+     goal:goalBar(T.optin_rate,30)},
+    {label:'App Completion',val:fmtPct(T.app_complete),color:'blue',
+     meta:`${T.appComplete.toLocaleString()} completed`,
+     badge:badge(T.app_complete,70,55)},
+    {label:'Qualified Rate',val:fmtPct(T.qual_rate),color:'purple',
+     meta:`${T.qualified.toLocaleString()} qualified`,badge:badge(T.qual_rate,40,30)},
+    {label:'Booked Call Rate',val:fmtPct(T.booked_rate),color:'cyan',
+     meta:`${T.booked.toLocaleString()} booked`,badge:badge(T.booked_rate,60,45)},
+    {label:'Confirm Rate',val:fmtPct(T.confirm_rate),color:'green',
+     meta:`Cancel: ${fmtPct(T.cancel_rate)}`,badge:badge(T.confirm_rate,75,60)},
+  ];
+  document.getElementById('funnel-kpis').innerHTML=kpis.map(k=>`
+    <div class="kpi-card ${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-meta">${k.badge||''} <span>${k.meta}</span></div>
+      ${k.goal||''}
+    </div>`).join('');
+
+  // Funnel visual
+  const steps=[
+    {label:'Impressions',     val:T.impressions,pct:100,           color:'#3B82F6'},
+    {label:'Opt-ins',         val:T.optins,     pct:T.optin_rate,  color:'#6366F1'},
+    {label:'App Started',     val:dailyData.reduce((a,d)=>a+d.appStarted,0),
+                              pct:dailyData.reduce((a,d)=>a+d.appStarted,0)/T.impressions*100,color:'#8B5CF6'},
+    {label:'App Completed',   val:T.appComplete,pct:T.appComplete/T.impressions*100,color:'#A855F7'},
+    {label:'Qualified',       val:T.qualified,  pct:T.qualified/T.impressions*100,  color:'#06B6D4'},
+    {label:'Booked Call',     val:T.booked,     pct:T.booked/T.impressions*100,     color:'#10B981'},
+    {label:'Confirmed',       val:T.confirmed,  pct:T.confirmed/T.impressions*100,  color:'#F59E0B'},
+    {label:'Showed',          val:T.showed,     pct:T.showed/T.impressions*100,     color:'#EF4444'},
+    {label:'Closed',          val:T.closed,     pct:T.closed/T.impressions*100,     color:'#DC2626'},
+  ];
+  document.getElementById('funnel-visual-container').innerHTML =
+    `<div class="funnel-visual">`+steps.map((s,i)=>`
+      ${i>0?`<div class="funnel-connector" style="margin-left:154px"></div>`:''}
+      <div class="funnel-step">
+        <div class="funnel-label">${s.label}</div>
+        <div class="funnel-bar-wrap">
+          <div class="funnel-bar" style="width:${Math.max(s.pct,2)}%;background:${s.color}">
+            <span>${s.val.toLocaleString()}</span>
+          </div>
+        </div>
+        <div class="funnel-pct">${fmtPct(s.pct)}</div>
+      </div>`).join('')+`</div>`;
+
+  // Qual split donut
+  new Chart(document.getElementById('chart-qual-split'),{
+    type:'doughnut',
+    data:{
+      labels:['Qualified','Unqualified','Partial'],
+      datasets:[{data:[T.qualified,T.unqualified,T.partial],
+        backgroundColor:['#10B981','#EF4444','#F59E0B'],
+        borderWidth:2,hoverOffset:8}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{display:false}}}
+  });
+  document.getElementById('qual-legend').innerHTML=[
+    {label:'Qualified',color:'#10B981',val:T.qualified},
+    {label:'Unqualified',color:'#EF4444',val:T.unqualified},
+    {label:'Partial',color:'#F59E0B',val:T.partial},
+  ].map(l=>`<div style="display:flex;align-items:center;gap:5px;font-size:12px">
+    <div style="width:10px;height:10px;border-radius:50%;background:${l.color}"></div>
+    <span>${l.label}</span>
+    <strong>${l.val.toLocaleString()}</strong>
+  </div>`).join('');
+
+  // Source breakdown
+  const maxLeads = Math.max(...sourceData.map(s=>s.leads));
+  document.getElementById('source-breakdown').innerHTML = sourceData.map(s=>`
+    <div class="source-row">
+      <div class="source-dot" style="background:${s.color}"></div>
+      <div class="source-name">${s.name}</div>
+      <div class="source-bar-wrap">
+        <div class="source-bar" style="width:${s.leads/maxLeads*100}%;background:${s.color}"></div>
+      </div>
+      <div class="source-count">${s.leads.toLocaleString()}</div>
+      <div class="source-pct">${fmtPct(s.leads/T.optins*100)}</div>
+    </div>`).join('');
+
+  // Opt-in trend
+  new Chart(document.getElementById('chart-optin-trend'),{
+    type:'line',
+    data:{
+      labels:dailyData.map(d=>fmtDate(d.date)),
+      datasets:[
+        {label:'Opt-ins',data:dailyData.map(d=>d.optins),
+          borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',
+          tension:.4,fill:true,pointRadius:0,borderWidth:2},
+        {label:'Qualified',data:dailyData.map(d=>d.qualified),
+          borderColor:'#10B981',backgroundColor:'rgba(16,185,129,.06)',
+          tension:.4,fill:true,pointRadius:0,borderWidth:2},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},
+      scales:{x:{ticks:{maxTicksLimit:8}}},
+      interaction:{mode:'index',intersect:false}}
+  });
+
+  // Confirm/Cancel by source
+  new Chart(document.getElementById('chart-confirm-cancel'),{
+    type:'bar',
+    data:{
+      labels:sourceData.map(s=>s.name),
+      datasets:[
+        {label:'Confirm Rate',data:sourceData.map(s=>(s.confirmRate*100).toFixed(1)),
+          backgroundColor:'#10B98199',borderRadius:4},
+        {label:'Cancel Rate',data:sourceData.map(s=>(s.cancelRate*100).toFixed(1)),
+          backgroundColor:'#EF444499',borderRadius:4},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},
+      scales:{x:{stacked:false},y:{ticks:{callback:v=>v+'%'},max:100}},
+      interaction:{mode:'index',intersect:false}}
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   DIALING SECTION
+   ══════════════════════════════════════════════════════════ */
+function renderDialing(){
+  const kpis=[
+    {label:'Total Calls',val:T.calls.toLocaleString(),color:'blue',
+     meta:'Period total'},
+    {label:'Pickup Rate',val:fmtPct(T.pickup_rate),color:'green',
+     meta:`${T.pickups.toLocaleString()} pickups`,badge:badge(T.pickup_rate,55,42),
+     goal:goalBar(T.pickup_rate,55)},
+    {label:'Set Rate',val:fmtPct(T.set_rate),color:'purple',
+     meta:`${T.sets.toLocaleString()} sets`,badge:badge(T.set_rate,38,28),
+     goal:goalBar(T.set_rate,38)},
+    {label:'Hang-up Rate',val:fmtPct(T.hangup_rate),color:'red',
+     meta:'Script/rep signal',
+     badge:`<span class="kpi-badge ${T.hangup_rate<22?'up':'down'}">${T.hangup_rate<22?'✓ OK':'↑ High'}</span>`},
+    {label:'Sets Today',val:dailyData[DAYS-1].sets,color:'cyan',
+     meta:`Calls: ${dailyData[DAYS-1].calls}`,
+     badge:`<span class="kpi-badge neutral">Today</span>`},
+    {label:'Qualified Not Set',val:fmtPct((SETTERS.reduce((a,s)=>a+s.notSet,0)/SETTERS.reduce((a,s)=>a+s.qualified,0))*100),
+     color:'amber',meta:'Rep vs. system gap'},
+  ];
+  document.getElementById('dialing-kpis').innerHTML=kpis.map(k=>`
+    <div class="kpi-card ${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-meta">${k.badge||''} <span>${k.meta||''}</span></div>
+      ${k.goal||''}
+    </div>`).join('');
+
+  // Rep table
+  document.getElementById('dialing-rep-table').innerHTML=`
+    <thead><tr>
+      <th>Rep</th><th class="right">Calls</th><th class="right">Pickups</th>
+      <th class="right">Sets</th><th class="right">Pickup %</th>
+      <th class="right">Set %</th><th class="right">Hang-up %</th>
+    </tr></thead>
+    <tbody>
+    ${SETTERS.map(s=>`<tr>
+      <td><div class="rep-name-cell">${avatar(s)}<strong>${s.name}</strong></div></td>
+      <td class="right">${s.calls.toLocaleString()}</td>
+      <td class="right">${s.pickups.toLocaleString()}</td>
+      <td class="right">${s.sets.toLocaleString()}</td>
+      <td class="right">${ratePill(s.pickups/s.calls*100,52,42)}</td>
+      <td class="right">${ratePill(s.sets/s.pickups*100,38,28)}</td>
+      <td class="right">${ratePill(100-s.hangups/s.pickups*100,80,72)}</td>
+    </tr>`).join('')}
+    </tbody>`;
+
+  // Rep performance chart
+  new Chart(document.getElementById('chart-rep-perf'),{
+    type:'bar',
+    data:{
+      labels:SETTERS.map(s=>s.name),
+      datasets:[
+        {label:'Pickup Rate %',data:SETTERS.map(s=>+(s.pickups/s.calls*100).toFixed(1)),
+          backgroundColor:'#3B82F6CC',borderRadius:4},
+        {label:'Set Rate %',data:SETTERS.map(s=>+(s.sets/s.pickups*100).toFixed(1)),
+          backgroundColor:'#8B5CF6CC',borderRadius:4},
+        {label:'Hang-up Rate %',data:SETTERS.map(s=>+(s.hangups/s.pickups*100).toFixed(1)),
+          backgroundColor:'#EF4444CC',borderRadius:4},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},
+      scales:{x:{},y:{ticks:{callback:v=>v+'%'},max:70,min:0}},
+      interaction:{mode:'index',intersect:false}}
+  });
+
+  // Objection log
+  const maxObj = OBJECTIONS[0].count;
+  document.getElementById('objection-log').innerHTML = OBJECTIONS.map(o=>`
+    <div class="obj-row">
+      <span class="obj-tag">${o.tag}</span>
+      <span class="obj-text">${o.text}</span>
+      <div class="obj-bar">
+        <div class="obj-fill" style="width:${o.count/maxObj*100}%"></div>
+      </div>
+      <span class="obj-count">${o.count}</span>
+    </div>`).join('');
+
+  // Call trend
+  new Chart(document.getElementById('chart-call-trend'),{
+    type:'bar',
+    data:{
+      labels:dailyData.map(d=>fmtDate(d.date)),
+      datasets:[
+        {label:'Calls',data:dailyData.map(d=>d.calls),
+          backgroundColor:'rgba(59,130,246,.5)',borderRadius:3},
+        {label:'Pickups',data:dailyData.map(d=>d.pickups),
+          backgroundColor:'rgba(16,185,129,.7)',borderRadius:3},
+        {label:'Sets',data:dailyData.map(d=>d.sets),
+          backgroundColor:'rgba(139,92,246,.8)',borderRadius:3},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},
+      scales:{x:{ticks:{maxTicksLimit:8},stacked:false}},
+      interaction:{mode:'index',intersect:false}}
+  });
+
+  // Working hours
+  document.getElementById('working-hours').innerHTML = SETTERS.map(s=>`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      ${avatar(s,26)}
+      <span style="font-size:12px;font-weight:600;flex:1">${s.name}</span>
+      <div style="width:120px;height:6px;background:var(--border);border-radius:4px;overflow:hidden">
+        <div style="width:${s.hours/50*100}%;height:100%;background:${s.color};border-radius:4px"></div>
+      </div>
+      <span style="font-size:12px;font-weight:700;width:48px;text-align:right">${s.hours}h</span>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════════════════
+   SALES CALLS SECTION
+   ══════════════════════════════════════════════════════════ */
+function renderSales(){
+  const kpis=[
+    {label:'Cash Collected',val:fmtCur(T.cash),color:'green',
+     meta:'Gross revenue',badge:`<span class="kpi-badge up">↑ 18.4%</span>`},
+    {label:'Cash After Fees',val:fmtCur(T.cashAfterFees),color:'blue',
+     meta:'Net of 2.9% fees',badge:`<span class="kpi-badge neutral">-${fmtCur(T.cash-T.cashAfterFees)}</span>`},
+    {label:'Avg Order Value',val:fmtCur(T.aov),color:'purple',
+     meta:'Per closed deal',badge:`<span class="kpi-badge up">↑ 4.2%</span>`},
+    {label:'Show Rate',val:fmtPct(T.show_rate),color:'cyan',
+     meta:'Goal: 70–80%+',badge:badge(T.show_rate,70,60),
+     goal:goalBar(T.show_rate,75)},
+    {label:'Close Rate',val:fmtPct(T.close_rate),color:'amber',
+     meta:'Organic + Paid avg',badge:badge(T.close_rate,38,28),
+     goal:goalBar(T.close_rate,40)},
+    {label:'Disqual. Rate',val:fmtPct(CLOSERS.reduce((a,c)=>a+c.disqualRate,0)/CLOSERS.length*100),
+     color:'red',meta:'Setter quality signal'},
+  ];
+  document.getElementById('sales-kpis').innerHTML=kpis.map(k=>`
+    <div class="kpi-card ${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-meta">${k.badge||''} <span>${k.meta||''}</span></div>
+      ${k.goal||''}
+    </div>`).join('');
+
+  // Cash chart
+  new Chart(document.getElementById('chart-cash'),{
+    type:'line',
+    data:{
+      labels:dailyData.map(d=>fmtDate(d.date)),
+      datasets:[
+        {label:'Cash Collected',data:dailyData.map(d=>d.cash),
+          borderColor:'#10B981',backgroundColor:'rgba(16,185,129,.1)',
+          tension:.4,fill:true,pointRadius:0,borderWidth:2},
+        {label:'After Fees',data:dailyData.map(d=>Math.round(d.cash*0.971)),
+          borderColor:'#3B82F6',backgroundColor:'transparent',
+          tension:.4,fill:false,pointRadius:0,borderWidth:2,borderDash:[4,3]},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},
+      scales:{x:{ticks:{maxTicksLimit:8}},
+        y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'}}},
+      interaction:{mode:'index',intersect:false}}
+  });
+
+  // Gauges
+  const gauges=[
+    {label:'Show Rate',val:T.show_rate,goal:75,color:'#3B82F6'},
+    {label:'Close Rate',val:T.close_rate,goal:38,color:'#8B5CF6'},
+    {label:'Organic Close',val:CLOSERS.reduce((a,c)=>a+c.organic,0)/CLOSERS.length*100,goal:50,color:'#10B981'},
+    {label:'Paid Close',val:CLOSERS.reduce((a,c)=>a+c.paid,0)/CLOSERS.length*100,goal:30,color:'#F59E0B'},
+  ];
+  document.getElementById('sales-gauges').innerHTML = gauges.map(g=>`
+    <div class="gauge-item">
+      <svg width="90" height="90" viewBox="0 0 90 90">
+        <circle cx="45" cy="45" r="36" fill="none" stroke="var(--border)" stroke-width="8"/>
+        <circle cx="45" cy="45" r="36" fill="none" stroke="${g.color}" stroke-width="8"
+          stroke-dasharray="${Math.min(g.val/100,1)*226} 226"
+          stroke-linecap="round"
+          transform="rotate(-90 45 45)"/>
+        <text x="45" y="49" text-anchor="middle" font-size="14" font-weight="800"
+          fill="${g.color}">${fmtPct(g.val)}</text>
+      </svg>
+      <div class="gauge-label">${g.label}</div>
+      <div class="gauge-target" style="font-size:10px;color:var(--muted)">Goal: ${g.goal}%</div>
+    </div>`).join('');
+
+  // Organic vs Paid close
+  new Chart(document.getElementById('chart-close-organic-paid'),{
+    type:'bar',
+    data:{
+      labels:CLOSERS.map(c=>c.name),
+      datasets:[
+        {label:'Organic Close %',data:CLOSERS.map(c=>(c.organic*100).toFixed(1)),
+          backgroundColor:'#10B98199',borderRadius:4},
+        {label:'Paid Close %',data:CLOSERS.map(c=>(c.paid*100).toFixed(1)),
+          backgroundColor:'#F59E0B99',borderRadius:4},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},
+      scales:{y:{ticks:{callback:v=>v+'%'},max:60},x:{}},
+      interaction:{mode:'index',intersect:false}}
+  });
+
+  // Closer table
+  document.getElementById('closer-table').innerHTML=`
+    <thead><tr>
+      <th>Closer</th><th class="right">Calls</th><th class="right">Showed</th>
+      <th class="right">Closed</th><th class="right">Show %</th>
+      <th class="right">Close %</th><th class="right">AOV</th>
+      <th class="right">Cash Collected</th>
+    </tr></thead>
+    <tbody>
+    ${CLOSERS.map(c=>`<tr>
+      <td><div class="rep-name-cell">${avatar(c)}<strong>${c.name}</strong></div></td>
+      <td class="right">${c.calls.toLocaleString()}</td>
+      <td class="right">${c.showed.toLocaleString()}</td>
+      <td class="right">${c.closed.toLocaleString()}</td>
+      <td class="right">${ratePill((1-c.noshow)*100,75,65)}</td>
+      <td class="right">${ratePill(c.closed/c.showed*100,38,28)}</td>
+      <td class="right">${fmtCur(c.aov)}</td>
+      <td class="right" style="color:var(--green);font-size:14px">${fmtCur(c.cash)}</td>
+    </tr>`).join('')}
+    <tr style="background:var(--bg)">
+      <td><strong>Total</strong></td>
+      <td class="right fw-700">${CLOSERS.reduce((a,c)=>a+c.calls,0).toLocaleString()}</td>
+      <td class="right fw-700">${CLOSERS.reduce((a,c)=>a+c.showed,0).toLocaleString()}</td>
+      <td class="right fw-700">${CLOSERS.reduce((a,c)=>a+c.closed,0).toLocaleString()}</td>
+      <td class="right">—</td><td class="right">—</td><td class="right">—</td>
+      <td class="right fw-800" style="color:var(--green);font-size:14px">
+        ${fmtCur(CLOSERS.reduce((a,c)=>a+c.cash,0))}
+      </td>
+    </tr></tbody>`;
+
+  // Rev by source
+  new Chart(document.getElementById('chart-rev-source'),{
+    type:'bar',
+    data:{
+      labels:sourceData.map(s=>s.name),
+      datasets:[{label:'Revenue',data:sourceData.map(s=>s.cash),
+        backgroundColor:sourceData.map(s=>s.color+'BB'),borderRadius:6}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'}},x:{}}}
+  });
+
+  // Attribution table
+  const attrs=[
+    {closer:'Marcus R.',setter:'Zoe M.',medium:'Facebook Ads',content:'VSL v3',deals:38,cash:197400},
+    {closer:'Sarah K.',setter:'Zoe M.',medium:'YouTube',content:'Case Study #7',deals:31,cash:164300},
+    {closer:'Marcus R.',setter:'Cam L.',medium:'Instagram',content:'Reel #42',deals:27,cash:140200},
+    {closer:'Jake T.',setter:'Zoe M.',medium:'Organic',content:'Blog Post',deals:22,cash:110400},
+    {closer:'Sarah K.',setter:'Cam L.',medium:'DM Outreach',content:'Cold DM',deals:19,cash:100700},
+  ];
+  document.getElementById('attribution-table').innerHTML=`
+    <thead><tr>
+      <th>Closer</th><th>Setter</th><th>Medium</th>
+      <th class="right">Deals</th><th class="right">Cash</th>
+    </tr></thead>
+    <tbody>
+    ${attrs.map(a=>`<tr>
+      <td><strong>${a.closer}</strong></td>
+      <td>${a.setter}</td><td class="text-muted">${a.medium}</td>
+      <td class="right fw-700">${a.deals}</td>
+      <td class="right fw-700 text-green">${fmtCur(a.cash)}</td>
+    </tr>`).join('')}
+    </tbody>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   COMMISSIONS SECTION
+   ══════════════════════════════════════════════════════════ */
+function renderCommissions(){
+  // Summary row
+  document.getElementById('comm-summary-row').innerHTML=[
+    {label:'Total Payroll (Comm.)',val:fmtCur(T.totalComm),color:'var(--blue)'},
+    {label:'Closer Payouts',val:fmtCur(T.closerComm),color:'var(--purple)'},
+    {label:'Setter Payouts',val:fmtCur(T.setterComm),color:'var(--pink)'},
+    {label:'Growth Operator',val:fmtCur(T.operatorComm),color:'var(--green)'},
+    {label:'Net Revenue (after comm.)',val:fmtCur(T.cashAfterFees-T.totalComm),color:'var(--amber)'},
+  ].map(s=>`<div class="stat-item">
+    <div class="stat-val" style="color:${s.color}">${s.val}</div>
+    <div class="stat-lbl">${s.label}</div>
+  </div>`).join('');
+
+  // Closers
+  const closerCashRatio = CLOSERS.map(c=>c.cash/CLOSERS.reduce((a,x)=>a+x.cash,0));
+  document.getElementById('closer-commissions').innerHTML = CLOSERS.map((c,i)=>{
+    const comm = T.cash*closerCashRatio[i]*0.10;
+    const deals = c.closed;
+    return `<div class="comm-card">
+      <div class="comm-name">${avatar(c,24)}<span>${c.name}</span></div>
+      <div class="comm-role">Sales Closer · 10% Commission</div>
+      <div class="comm-row"><span class="comm-row-label">Deals Closed</span><span class="comm-row-value">${deals}</span></div>
+      <div class="comm-row"><span class="comm-row-label">Cash Collected</span><span class="comm-row-value">${fmtCur(c.cash)}</span></div>
+      <div class="comm-row"><span class="comm-row-label">Commission Rate</span><span class="comm-row-value">10%</span></div>
+      <div class="comm-row"><span class="comm-row-label">Organic Rate</span><span class="comm-row-value">${fmtPct(c.organic*100)}</span></div>
+      <div class="comm-row"><span class="comm-row-label">Paid Rate</span><span class="comm-row-value">${fmtPct(c.paid*100)}</span></div>
+      <div class="comm-total">
+        <span class="comm-total-label">Commission Earned</span>
+        <span class="comm-total-value">${fmtCur(comm)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Setters
+  const setterCashRatio = SETTERS.map(s=>s.sets/SETTERS.reduce((a,x)=>a+x.sets,0));
+  document.getElementById('setter-commissions').innerHTML = SETTERS.map((s,i)=>{
+    const revShare = T.cash*setterCashRatio[i];
+    const comm = revShare*0.03;
+    return `<div class="comm-card">
+      <div class="comm-name">${avatar(s,24)}<span>${s.name}</span></div>
+      <div class="comm-role">Sales Setter · 3% Commission</div>
+      <div class="comm-row"><span class="comm-row-label">Sets Booked</span><span class="comm-row-value">${s.sets}</span></div>
+      <div class="comm-row"><span class="comm-row-label">Pickup Rate</span><span class="comm-row-value">${fmtPct(s.pickups/s.calls*100)}</span></div>
+      <div class="comm-row"><span class="comm-row-label">Set Rate</span><span class="comm-row-value">${fmtPct(s.sets/s.pickups*100)}</span></div>
+      <div class="comm-row"><span class="comm-row-label">Rev Attributed</span><span class="comm-row-value">${fmtCur(revShare)}</span></div>
+      <div class="comm-row"><span class="comm-row-label">Commission Rate</span><span class="comm-row-value">3%</span></div>
+      <div class="comm-total">
+        <span class="comm-total-label">Commission Earned</span>
+        <span class="comm-total-value">${fmtCur(comm)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Growth Operator
+  document.getElementById('operator-commissions').innerHTML = OPERATORS.map(op=>{
+    const comm = T.cash*op.overrideRate;
+    return `<div class="comm-card">
+      <div class="comm-name">${avatar(op,24)}<span>${op.name}</span></div>
+      <div class="comm-role">Growth Operator · 5% Override</div>
+      <div class="comm-row"><span class="comm-row-label">Total Revenue</span><span class="comm-row-value">${fmtCur(T.cash)}</span></div>
+      <div class="comm-row"><span class="comm-row-label">Override Rate</span><span class="comm-row-value">5%</span></div>
+      <div class="comm-row"><span class="comm-row-label">Deals Overseen</span><span class="comm-row-value">${T.closed}</span></div>
+      <div class="comm-row"><span class="comm-row-label">Active Reps</span><span class="comm-row-value">${CLOSERS.length+SETTERS.length}</span></div>
+      <div class="comm-total">
+        <span class="comm-total-label">Override Earned</span>
+        <span class="comm-total-value">${fmtCur(comm)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Commission trend
+  new Chart(document.getElementById('chart-comm-trend'),{
+    type:'bar',
+    data:{
+      labels:weeklyComm.map(w=>w.label),
+      datasets:[
+        {label:'Closers',data:weeklyComm.map(w=>w.closer),
+          backgroundColor:'#3B82F6BB',borderRadius:4},
+        {label:'Setters',data:weeklyComm.map(w=>w.setter),
+          backgroundColor:'#EC4899BB',borderRadius:4},
+        {label:'Growth Op.',data:weeklyComm.map(w=>w.operator),
+          backgroundColor:'#10B981BB',borderRadius:4},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},
+      scales:{x:{stacked:true},y:{stacked:true,
+        ticks:{callback:v=>'$'+Math.round(v/1000)+'k'}}}}
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   LEADERBOARD SECTION
+   ══════════════════════════════════════════════════════════ */
+function renderLeaderboard(){
+  const sortedClosers = [...CLOSERS].sort((a,b)=>b.cash-a.cash);
+  const sortedSetters = [...SETTERS].sort((a,b)=>b.sets-a.sets);
+
+  document.getElementById('lb-closers').innerHTML=`
+    <thead><tr>
+      <th>#</th><th>Rep</th><th class="right">Closed</th>
+      <th class="right">Cash</th><th class="right">Close %</th>
+      <th class="right">AOV</th>
+    </tr></thead>
+    <tbody>
+    ${sortedClosers.map((c,i)=>`<tr>
+      <td>${rankBadge(i)}</td>
+      <td><div class="rep-name-cell">${avatar(c)}<strong>${c.name}</strong></div></td>
+      <td class="right">${c.closed}</td>
+      <td class="right fw-700 text-green">${fmtCur(c.cash)}</td>
+      <td class="right">${ratePill(c.closed/c.showed*100,38,28)}</td>
+      <td class="right">${fmtCur(c.aov)}</td>
+    </tr>`).join('')}
+    </tbody>`;
+
+  document.getElementById('lb-setters').innerHTML=`
+    <thead><tr>
+      <th>#</th><th>Rep</th><th class="right">Sets</th>
+      <th class="right">Pickup %</th><th class="right">Set %</th>
+      <th class="right">Hours</th>
+    </tr></thead>
+    <tbody>
+    ${sortedSetters.map((s,i)=>`<tr>
+      <td>${rankBadge(i)}</td>
+      <td><div class="rep-name-cell">${avatar(s)}<strong>${s.name}</strong></div></td>
+      <td class="right fw-700">${s.sets}</td>
+      <td class="right">${ratePill(s.pickups/s.calls*100,52,42)}</td>
+      <td class="right">${ratePill(s.sets/s.pickups*100,38,28)}</td>
+      <td class="right">${s.hours}h</td>
+    </tr>`).join('')}
+    </tbody>`;
+
+  // Radar chart
+  new Chart(document.getElementById('chart-radar'),{
+    type:'radar',
+    data:{
+      labels:['Close Rate','Show Rate','AOV Score','Sets %','Rev Score'],
+      datasets:CLOSERS.map(c=>({
+        label:c.name,
+        data:[
+          c.closed/c.showed*100,
+          (1-c.noshow)*100,
+          c.aov/6000*100,
+          65,
+          c.cash/600000*100,
+        ],
+        borderColor:c.color,backgroundColor:c.color+'22',pointBackgroundColor:c.color,
+        borderWidth:2,pointRadius:4,
+      }))
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},
+      scales:{r:{min:0,max:100,ticks:{display:false},
+        grid:{color:'rgba(0,0,0,.06)'},
+        pointLabels:{font:{size:11,weight:'600'}}}}}
+  });
+
+  // Weekly per-rep bars
+  const weeks=['Wk1','Wk2','Wk3','Wk4'];
+  new Chart(document.getElementById('chart-rep-weekly'),{
+    type:'bar',
+    data:{
+      labels:weeks,
+      datasets:CLOSERS.map(c=>({
+        label:c.name,
+        data:weeks.map(()=>Math.round(c.cash/4+Math.random()*c.cash*0.15-c.cash*0.07)),
+        backgroundColor:c.color+'BB',borderRadius:4,
+      }))
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},
+      scales:{x:{},y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'}}},
+      interaction:{mode:'index',intersect:false}}
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('last-updated').textContent =
+    new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+
+  renderOverview();
+  renderFunnel();
+  renderDialing();
+  renderSales();
+  renderCommissions();
+  renderLeaderboard();
+});
+</script>
+</body>
+</html>
