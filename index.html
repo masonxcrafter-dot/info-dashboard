@@ -925,77 +925,45 @@ function fmtCur(n){ return '$'+n.toLocaleString('en-US',{maximumFractionDigits:0
 function fmtPct(n){ return n.toFixed(1)+'%'; }
 
 // Generate daily funnel data
-const dailyData = Array.from({length:DAYS},(_,i)=>{
-  const d = daysAgo(DAYS-1-i);
-  const impressions = 1200+Math.round(Math.sin(i*0.5)*300+Math.random()*400);
-  const optins      = Math.round(impressions*(0.29+Math.random()*0.06));
-  const appStarted  = Math.round(optins*(0.55+Math.random()*0.08));
-  const appComplete = Math.round(appStarted*(0.72+Math.random()*0.08));
-  const qualified   = Math.round(appComplete*(0.44+Math.random()*0.08));
-  const unqualified = Math.round(appComplete*(0.28+Math.random()*0.06));
-  const partial     = appComplete-qualified-unqualified;
-  const booked      = Math.round(qualified*(0.62+Math.random()*0.07));
-  const confirmed   = Math.round(booked*(0.78+Math.random()*0.06));
-  const cancelled   = booked-confirmed;
-  const showed      = Math.round(confirmed*(0.78+Math.random()*0.06));
-  const closed      = Math.round(showed*(0.38+Math.random()*0.08));
-  const aov         = 4800+Math.round(Math.random()*2400);
-  const cash        = closed*aov;
-  // Dialing
-  const calls       = 80+Math.round(Math.random()*60);
-  const pickups     = Math.round(calls*(0.52+Math.random()*0.08));
-  const sets        = Math.round(pickups*(0.38+Math.random()*0.08));
-  const hangups     = Math.round(pickups*(0.20+Math.random()*0.06));
-  return {date:d,impressions,optins,appStarted,appComplete,
-          qualified,unqualified,partial,booked,confirmed,cancelled,
-          showed,closed,aov,cash,calls,pickups,sets,hangups};
-});
+// ── LIVE DATA — replace these values with your real numbers ──
+const dailyData = Array.from({length:DAYS},(_,i)=>({
+  date: daysAgo(DAYS-1-i),
+  impressions:0, optins:0, appStarted:0, appComplete:0,
+  qualified:0,   unqualified:0, partial:0,
+  booked:0,      confirmed:0,   cancelled:0,
+  showed:0,      closed:0,      aov:0,     cash:0,
+  calls:0,       pickups:0,     sets:0,    hangups:0,
+}));
 
-// Sources
+// Sources — update leads/closed/cash with your real numbers per platform
 const SOURCES = [
-  {id:'fb',   name:'Facebook Ads', color:'#1877F2'},
-  {id:'yt',   name:'YouTube',      color:'#FF0000'},
-  {id:'ig',   name:'Instagram',    color:'#E1306C'},
-  {id:'organic',name:'Organic',    color:'#10B981'},
-  {id:'dm',   name:'DM Outreach',  color:'#8B5CF6'},
+  {id:'fb',      name:'Facebook Ads', color:'#1877F2'},
+  {id:'yt',      name:'YouTube',      color:'#FF0000'},
+  {id:'ig',      name:'Instagram',    color:'#E1306C'},
+  {id:'organic', name:'Organic',      color:'#10B981'},
+  {id:'dm',      name:'DM Outreach',  color:'#8B5CF6'},
 ];
-const sourceData = SOURCES.map((s,i)=>{
-  const weights=[0.32,0.24,0.20,0.14,0.10];
-  const tot = dailyData.reduce((a,d)=>a+d.optins,0);
-  const leads = Math.round(tot*weights[i]);
-  const cr    = i===3?0.52:i===4?0.48:0.28+i*0.02;
-  const closed= Math.round(leads*0.65*0.79*cr); // rough funnel
-  const aov   = 4800+i*400;
-  const cash  = closed*aov;
-  const confirmRate = 0.82-i*0.03;
-  const cancelRate  = 1-confirmRate;
-  return {...s,leads,closed,cash,cr,confirmRate,cancelRate};
-});
+const sourceData = SOURCES.map(s=>({
+  ...s, leads:0, closed:0, cash:0,
+  cr:0, confirmRate:0, cancelRate:0,
+}));
 
-// Reps
+// Reps — fill in your actual closers, setters, and growth operator
 const CLOSERS = [
-  {id:'marcus',name:'Marcus R.',color:'#3B82F6',avatar:'MR',
-   calls:312,showed:248,closed:112,cash:581400,aov:5191,
-   organic:0.54,paid:0.33,noshow:0.108,disqualRate:0.09},
-  {id:'sarah', name:'Sarah K.', color:'#8B5CF6',avatar:'SK',
-   calls:287,showed:226,closed:98, cash:519400,aov:5300,
-   organic:0.51,paid:0.31,noshow:0.119,disqualRate:0.11},
-  {id:'jake',  name:'Jake T.',  color:'#06B6D4',avatar:'JT',
-   calls:259,showed:198,closed:79, cash:396200,aov:5015,
-   organic:0.49,paid:0.28,noshow:0.131,disqualRate:0.13},
+  {id:'closer1', name:'Closer 1', color:'#3B82F6', avatar:'C1',
+   calls:0, showed:0, closed:0, cash:0, aov:0,
+   organic:0, paid:0, noshow:0, disqualRate:0},
 ];
 const SETTERS = [
-  {id:'zoe',name:'Zoe M.',color:'#EC4899',avatar:'ZM',
-   calls:1820,pickups:1010,sets:412,hangups:198,qualified:820,notSet:218,hours:42},
-  {id:'cam',name:'Cam L.',color:'#F59E0B',avatar:'CL',
-   calls:1420,pickups:772,sets:300,hangups:171,qualified:612,notSet:162,hours:38},
+  {id:'setter1', name:'Setter 1', color:'#EC4899', avatar:'S1',
+   calls:0, pickups:0, sets:0, hangups:0, qualified:0, notSet:0, hours:0},
 ];
 const OPERATORS = [
-  {id:'alex',name:'Alex G.',color:'#10B981',avatar:'AG',role:'Growth Operator',
-   overrideRate:0.15},
+  {id:'operator1', name:'Growth Operator', color:'#10B981', avatar:'GO',
+   role:'Growth Operator', overrideRate:0.15},
 ];
 
-// Totals
+// Totals — calculated automatically from dailyData above
 const T = {
   impressions: dailyData.reduce((a,d)=>a+d.impressions,0),
   optins:      dailyData.reduce((a,d)=>a+d.optins,0),
@@ -1014,42 +982,39 @@ const T = {
   sets:        dailyData.reduce((a,d)=>a+d.sets,0),
   hangups:     dailyData.reduce((a,d)=>a+d.hangups,0),
 };
-T.optin_rate    = T.optins/T.impressions*100;
-T.app_complete  = T.appComplete/T.optins*100;
-T.qual_rate     = T.qualified/T.appComplete*100;
-T.booked_rate   = T.booked/T.qualified*100;
-T.confirm_rate  = T.confirmed/T.booked*100;
-T.cancel_rate   = T.cancelled/T.booked*100;
-T.show_rate     = T.showed/T.confirmed*100;
-T.close_rate    = T.closed/T.showed*100;
-T.pickup_rate   = T.pickups/T.calls*100;
-T.set_rate      = T.sets/T.pickups*100;
-T.hangup_rate   = T.hangups/T.pickups*100;
+T.optin_rate    = T.impressions ? T.optins/T.impressions*100 : 0;
+T.app_complete  = T.optins      ? T.appComplete/T.optins*100 : 0;
+T.qual_rate     = T.appComplete ? T.qualified/T.appComplete*100 : 0;
+T.booked_rate   = T.qualified   ? T.booked/T.qualified*100 : 0;
+T.confirm_rate  = T.booked      ? T.confirmed/T.booked*100 : 0;
+T.cancel_rate   = T.booked      ? T.cancelled/T.booked*100 : 0;
+T.show_rate     = T.confirmed   ? T.showed/T.confirmed*100 : 0;
+T.close_rate    = T.showed      ? T.closed/T.showed*100 : 0;
+T.pickup_rate   = T.calls       ? T.pickups/T.calls*100 : 0;
+T.set_rate      = T.pickups     ? T.sets/T.pickups*100 : 0;
+T.hangup_rate   = T.pickups     ? T.hangups/T.pickups*100 : 0;
 T.cashAfterFees = T.cash*0.971;
-T.aov           = T.cash/T.closed;
+T.aov           = T.closed      ? T.cash/T.closed : 0;
 // Commissions
 T.closerComm    = T.cash*0.10;
 T.setterComm    = T.cash*0.05;
 T.operatorComm  = T.cash*0.15;
 T.totalComm     = T.closerComm+T.setterComm+T.operatorComm;
 
-// Weekly commission trend (8 weeks)
+// Weekly commission trend — will show $0 until you enter real data
 const weeklyComm = Array.from({length:8},(_,i)=>({
-  label:`Wk ${i+1}`,
-  closer: 18000+Math.round(Math.random()*12000),
-  setter:  5400+Math.round(Math.random()*3600),
-  operator:9000+Math.round(Math.random()*6000),
+  label:`Wk ${i+1}`, closer:0, setter:0, operator:0,
 }));
 
-// Objections
+// Objections — add your team's most common objections and counts
 const OBJECTIONS = [
-  {tag:'Price',text:'Too expensive / not in budget',count:47},
-  {tag:'Timing',text:'Not the right time right now',count:38},
-  {tag:'Think',text:'Need to think about it',count:35},
-  {tag:'Spouse',text:'Need to talk to my partner',count:29},
-  {tag:'Trust',text:'How do I know this works?',count:24},
-  {tag:'DIY',text:'I can figure this out myself',count:18},
-  {tag:'Busy',text:'Too busy to commit right now',count:14},
+  {tag:'Price',  text:'Too expensive / not in budget',      count:0},
+  {tag:'Timing', text:'Not the right time right now',       count:0},
+  {tag:'Think',  text:'Need to think about it',             count:0},
+  {tag:'Spouse', text:'Need to talk to my partner',         count:0},
+  {tag:'Trust',  text:'How do I know this works?',          count:0},
+  {tag:'DIY',    text:'I can figure this out myself',       count:0},
+  {tag:'Busy',   text:'Too busy to commit right now',       count:0},
 ];
 
 // Chart.js global defaults
